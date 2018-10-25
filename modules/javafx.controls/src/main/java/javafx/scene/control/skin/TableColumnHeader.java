@@ -556,9 +556,20 @@ public class TableColumnHeader extends Region {
     }
 
     /**
-     * Called by the parent header when this {@code TableColumnHeader} is removed
-     * from its children. This method
-     * must implement any logic necessary to clean up itself. 
+     * Implements any logic necessary to clean up itself. 
+     * Called when this {@code TableColumnHeader} is no longer needed. 
+     * 
+     * <p> 
+     * This implementation unregisters {@code ChangeListener}s that had been
+     * registered via <code>registerChangeListener(Property, Consumer)</code>. 
+     * <p>
+     * Subclasses can override to implement additional cleanup. They must call
+     * super to guarantee the basic cleanup that's implemented here.
+     * 
+     * @since 12
+     * 
+     * @see #registerChangeListener(ObservableValue, Consumer)
+     * @see #unregisterChangeListeners(ObservableValue)
      */
     protected void dispose() {
         TableViewSkinBase tableSkin = getTableSkin();

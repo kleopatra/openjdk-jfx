@@ -187,12 +187,15 @@ public class TableColumnHeader extends Region {
         }
     }
 
+
     /**
      * Subclasses can invoke this method to register that they want to listen to
      * property change events for the given property. Registered {@link Consumer} instances
      * will be executed in the order in which they are registered.
      * @param property the property
      * @param consumer the consumer
+     * 
+     * @since 12
      */
     protected final void registerChangeListener(ObservableValue<?> property, Consumer<ObservableValue<?>> consumer) {
         if (changeListenerHandler == null) {
@@ -211,7 +214,8 @@ public class TableColumnHeader extends Region {
      * @return A single chained {@link Consumer} consisting of all {@link Consumer consumers} registered through
      *      {@link #registerChangeListener(ObservableValue, Consumer)}. If no consumers have been registered on this
      *      property, null will be returned.
-     * @since 9
+     * 
+     * @since 12
      */
     protected final Consumer<ObservableValue<?>> unregisterChangeListeners(ObservableValue<?> property) {
         if (changeListenerHandler == null) {
@@ -219,7 +223,6 @@ public class TableColumnHeader extends Region {
         }
         return changeListenerHandler.unregisterChangeListeners(property);
     }
-
 
 
 

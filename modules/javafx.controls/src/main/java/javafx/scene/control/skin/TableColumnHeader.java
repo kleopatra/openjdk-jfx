@@ -31,6 +31,7 @@ import com.sun.javafx.scene.control.TableColumnBaseHelper;
 import javafx.beans.property.DoubleProperty;
 import javafx.beans.property.ReadOnlyObjectProperty;
 import javafx.beans.property.ReadOnlyObjectWrapper;
+import javafx.beans.value.ObservableValue;
 import javafx.beans.value.WritableValue;
 import javafx.collections.ListChangeListener;
 import javafx.collections.ObservableList;
@@ -63,6 +64,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Locale;
+import java.util.function.Consumer;
 
 import javafx.css.converter.SizeConverter;
 
@@ -154,22 +156,20 @@ public class TableColumnHeader extends Region {
         initStyleClasses();
         initUI();
 
-        // change listener for multiple properties
-        changeListenerHandler = new LambdaMultiplePropertyChangeListenerHandler();
-        changeListenerHandler.registerChangeListener(sceneProperty(), e -> updateScene());
-
+        registerChangeListener(sceneProperty(), e -> updateScene());
+//
         if (getTableColumn() != null) {
-            changeListenerHandler.registerChangeListener(tc.idProperty(), e -> setId(tc.getId()));
-            changeListenerHandler.registerChangeListener(tc.styleProperty(), e -> setStyle(tc.getStyle()));
-            changeListenerHandler.registerChangeListener(tc.widthProperty(), e -> {
+            registerChangeListener(tc.idProperty(), e -> setId(tc.getId()));
+            registerChangeListener(tc.styleProperty(), e -> setStyle(tc.getStyle()));
+            registerChangeListener(tc.widthProperty(), e -> {
                 // It is this that ensures that when a column is resized that the header
                 // visually adjusts its width as necessary.
                 isSizeDirty = true;
                 requestLayout();
             });
-            changeListenerHandler.registerChangeListener(tc.visibleProperty(), e -> setVisible(getTableColumn().isVisible()));
-            changeListenerHandler.registerChangeListener(tc.sortNodeProperty(), e -> updateSortGrid());
-            changeListenerHandler.registerChangeListener(tc.sortableProperty(), e -> {
+            registerChangeListener(tc.visibleProperty(), e -> setVisible(getTableColumn().isVisible()));
+            registerChangeListener(tc.sortNodeProperty(), e -> updateSortGrid());
+            registerChangeListener(tc.sortableProperty(), e -> {
                 // we need to notify all headers that a sortable state has changed,
                 // in case the sort grid in other columns needs to be updated.
                 if (TableSkinUtils.getSortOrder(getTableSkin()).contains(getTableColumn())) {
@@ -177,15 +177,49 @@ public class TableColumnHeader extends Region {
                     updateAllHeaders(root);
                 }
             });
-            changeListenerHandler.registerChangeListener(tc.textProperty(), e -> label.setText(tc.getText()));
-            changeListenerHandler.registerChangeListener(tc.graphicProperty(), e -> label.setGraphic(tc.getGraphic()));
-
+            registerChangeListener(tc.textProperty(), e -> label.setText(tc.getText()));
+            registerChangeListener(tc.graphicProperty(), e -> label.setGraphic(tc.getGraphic()));
+//
             setId(tc.getId());
             setStyle(tc.getStyle());
             /* Having TableColumn role parented by TableColumn causes VoiceOver to be unhappy */
             setAccessibleRole(AccessibleRole.TABLE_COLUMN);
         }
     }
+
+    /**
+     * Subclasses can invoke this method to register that they want to listen to
+     * property change events for the given property. Registered {@link Consumer} instances
+     * will be executed in the order in which they are registered.
+     * @param property the property
+     * @param consumer the consumer
+     */
+    protected final void registerChangeListener(ObservableValue<?> property, Consumer<ObservableValue<?>> consumer) {
+        if (changeListenerHandler == null) {
+            changeListenerHandler = new LambdaMultiplePropertyChangeListenerHandler();
+        }
+        changeListenerHandler.registerChangeListener(property, consumer);
+    }
+
+    /**
+     * Unregisters all change listeners that have been registered using {@link #registerChangeListener(ObservableValue, Consumer)}
+     * for the given property. The end result is that the given property is no longer observed by any of the change
+     * listeners, but it may still have additional listeners registered on it through means outside of
+     * {@link #registerChangeListener(ObservableValue, Consumer)}.
+     *
+     * @param property The property for which all listeners should be removed.
+     * @return A single chained {@link Consumer} consisting of all {@link Consumer consumers} registered through
+     *      {@link #registerChangeListener(ObservableValue, Consumer)}. If no consumers have been registered on this
+     *      property, null will be returned.
+     * @since 9
+     */
+    protected final Consumer<ObservableValue<?>> unregisterChangeListeners(ObservableValue<?> property) {
+        if (changeListenerHandler == null) {
+            return null;
+        }
+        return changeListenerHandler.unregisterChangeListeners(property);
+    }
+
 
 
 
@@ -195,7 +229,7 @@ public class TableColumnHeader extends Region {
      *                                                                         *
      **************************************************************************/
 
-    final LambdaMultiplePropertyChangeListenerHandler changeListenerHandler;
+    private LambdaMultiplePropertyChangeListenerHandler changeListenerHandler;
 
     private ListChangeListener<TableColumnBase<?,?>> sortOrderListener = c -> {
         updateSortPosition();
@@ -518,14 +552,21 @@ public class TableColumnHeader extends Region {
         }
     }
 
-    void dispose() {
+    /**
+     * Called by the parent header when this {@code TableColumnHeader} is removed
+     * from its children. This method
+     * must implement any logic necessary to clean up itself. 
+     */
+    protected void dispose() {
         TableViewSkinBase tableSkin = getTableSkin();
         if (tableSkin != null) {
             TableSkinUtils.getVisibleLeafColumns(tableSkin).removeListener(weakVisibleLeafColumnsListener);
             TableSkinUtils.getSortOrder(tableSkin).removeListener(weakSortOrderListener);
         }
 
-        changeListenerHandler.dispose();
+        if (changeListenerHandler != null) {
+            changeListenerHandler.dispose();
+        }
     }
 
     private boolean isSortingEnabled() {

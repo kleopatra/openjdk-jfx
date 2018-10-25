@@ -128,7 +128,7 @@ public class NestedTableColumnHeader extends TableColumnHeader {
         label.setNestedColumnHeader(this);
 
         if (getTableColumn() != null) {
-            changeListenerHandler.registerChangeListener(getTableColumn().textProperty(), e ->
+            registerChangeListener(getTableColumn().textProperty(), e ->
                     label.setVisible(getTableColumn().getText() != null && ! getTableColumn().getText().isEmpty()));
         }
     }
@@ -234,7 +234,8 @@ public class NestedTableColumnHeader extends TableColumnHeader {
      **************************************************************************/
 
     /** {@inheritDoc} */
-    @Override void dispose() {
+    @Override 
+    protected void dispose() {
         super.dispose();
 
         if (label != null) {
@@ -258,7 +259,8 @@ public class NestedTableColumnHeader extends TableColumnHeader {
         dragRects.clear();
         getChildren().clear();
 
-        changeListenerHandler.dispose();
+        // PENDING JW why is this called in the first place? super already did
+//        changeListenerHandler.dispose();
     }
 
     /**
@@ -402,7 +404,8 @@ public class NestedTableColumnHeader extends TableColumnHeader {
 
         // it's only now that a skin might be available
         if (getTableSkin() != null) {
-            changeListenerHandler.registerChangeListener(TableSkinUtils.columnResizePolicyProperty(getTableSkin()), e -> updateContent());
+            registerChangeListener(TableSkinUtils.columnResizePolicyProperty(getTableSkin()),
+                    e -> updateContent());
         }
 
         label.setTableHeaderRow(header);

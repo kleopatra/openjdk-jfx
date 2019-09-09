@@ -27,19 +27,42 @@ package test.com.sun.javafx.scene.control.infrastructure;
 
 import java.util.Arrays;
 import java.util.List;
-import javafx.event.EventType;
-import javafx.scene.input.KeyCode;
-import javafx.scene.input.KeyEvent;
+
 import javafx.event.Event;
 import javafx.event.EventTarget;
+import javafx.event.EventType;
+import javafx.scene.Node;
+import javafx.scene.Scene;
+import javafx.scene.input.KeyCode;
+import javafx.scene.input.KeyEvent;
 
 
 public class KeyEventFirer {
 
     private final EventTarget target;
+    private final boolean useScene;
 
+    /**
+     * Instantiates a KeyEventFirer that fires the KeyEvents
+     * directly onto the target.
+     *
+     * @param target the target of the KeyEvent.
+     */
     public KeyEventFirer(EventTarget target) {
+        this(target, false);
+    }
+    /**
+     * Instantiates a KeyEventFirer that can be configured to fire the
+     * keyEvent directly onto the target or via injection into the scene,
+     * depending on useScene being false/true, respectively. If true,
+     * the target is focused before injection.
+     *
+     * @param target the target of the KeyEvent.
+     * @param useScene flag to control the firing behavior.
+     */
+    public KeyEventFirer(EventTarget target, boolean useScene) {
         this.target = target;
+        this.useScene = useScene;
     }
 
     public void doUpArrowPress(KeyModifier... modifiers) {
@@ -68,7 +91,16 @@ public class KeyEventFirer {
 
     private void fireEvents(KeyEvent... events) {
         for (KeyEvent evt : events) {
-            Event.fireEvent(target, evt);
+            Scene scene = null;
+            if (useScene && target instanceof Node) {
+                scene = ((Node) target).getScene();
+                ((Node) target).requestFocus();
+            }
+            if (scene != null) {
+                scene.processKeyEvent(evt);
+            } else  {
+                Event.fireEvent(target, evt);
+            }
         }
     }
 

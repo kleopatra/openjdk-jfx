@@ -552,7 +552,13 @@ public abstract class ComboBoxPopupControl<T> extends ComboBoxBaseSkin<T> {
         // When the user hits the enter or F4 keys, we respond before
         // ever giving the event to the TextField.
         if (ke.getCode() == KeyCode.ENTER) {
-            if (ke.isConsumed() || ke.getEventType() != KeyEvent.KEY_RELEASED) {
+            if (ke.isConsumed()
+                    //)
+                    // the second part of the logic prevents a enter
+                    // keyPressed to reach a filter added to the editor
+                    // regression JDK-8229914
+                    || ke.getEventType() != KeyEvent.KEY_RELEASED)
+            {
                 return;
             }
             setTextFromTextFieldIntoComboBoxValue();
